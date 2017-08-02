@@ -1,0 +1,23 @@
+ as() 不是一个真实的查询步骤，它类似于by()和option(),是一个调节步骤。
+ 使用as(),我们可以给当前步骤打一个标签，这样就可以在后续查询步骤中通过类似的标签，联结到当前步骤。并通过select(), match(), 和 path等函数，
+ 使用该标签所在步骤的数据结构。
+ 
+ gremlin> g.V().as('a').out('created').as('b').select('a','b') //(1)--获取图路径中标记为a、b的点
+ ==>[a:v[1],b:v[3]]
+ ==>[a:v[4],b:v[5]]
+ ==>[a:v[4],b:v[3]]
+ ==>[a:v[6],b:v[3]]
+ gremlin> g.V().as('a').out('created').as('b').select('a','b').by('name') //(2)--获取图路径中标记为a、b的点，列出他们的name属性值
+ ==>[a:marko,b:lop]
+ ==>[a:josh,b:ripple]
+ ==>[a:josh,b:lop]
+ ==>[a:peter,b:lop]
+ 
+ 图路径中每个step的点，可以通过as()标记任意多个label。下例是同一个step,后续被调用多次。
+ gremlin> g.V().hasLabel('software').as('a','b','c').
+            select('a','b','c').
+              by('name').
+              by('lang').
+              by(__.in('created').values('name').fold())
+==>[a:lop,b:java,c:[marko,josh,peter]]
+==>[a:ripple,b:java,c:[josh]]
