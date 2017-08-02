@@ -1,0 +1,66 @@
+对应原文：http://sql2gremlin.com/
+
+复杂sql:
+  关键点：
+     sql例子，展示每个顾客按照月份顺序获取每个月的平均和总收入。
+  Sql:
+     SELECT Customers.CompanyName,
+           COALESCE([1], 0)  AS [Jan],
+           COALESCE([2], 0)  AS [Feb],
+           COALESCE([3], 0)  AS [Mar],
+           COALESCE([4], 0)  AS [Apr],
+           COALESCE([5], 0)  AS [May],
+           COALESCE([6], 0)  AS [Jun],
+           COALESCE([7], 0)  AS [Jul],
+           COALESCE([8], 0)  AS [Aug],
+           COALESCE([9], 0)  AS [Sep],
+           COALESCE([10], 0) AS [Oct],
+           COALESCE([11], 0) AS [Nov],
+           COALESCE([12], 0) AS [Dec]
+      FROM (SELECT Orders.CustomerID,
+                   MONTH(Orders.OrderDate)                                   AS [Month],
+                   SUM([Order Details].UnitPrice * [Order Details].Quantity) AS Total
+              FROM Orders
+        INNER JOIN [Order Details]
+                ON [Order Details].OrderID = Orders.OrderID
+          GROUP BY Orders.CustomerID,
+                   MONTH(Orders.OrderDate)) o
+     PIVOT (AVG(Total) FOR [Month] IN ([1],
+                                       [2],
+                                       [3],
+                                       [4],
+                                       [5],
+                                       [6],
+                                       [7],
+                                       [8],
+                                       [9],
+                                       [10],
+                                       [11],
+                                       [12])) AS [Pivot]
+     INNER JOIN Customers
+          ON Customers.CustomerID = [Pivot].CustomerID
+      ORDER BY Customers.CompanyName;
+
+ 对应的gremlin查询及结果示例：
+    gremlin> months = new java.text.DateFormatSymbols().getShortMonths().toList(); []
+    gremlin> rowTotal = {it.get().value("unitPrice") * it.get().value("quantity")}; []
+    gremlin>
+    gremlin> g.V().hasLabel("customer").order().by("customerId", incr).
+               where(out("ordered")).as("customer").
+               map {
+                 def m = g.V(it.get()).out("ordered").
+                           group().by {new Date(it.value("orderDate")).getMonth()}.
+                                   by(out("contains").map(rowTotal).sum()).next()
+                 (0..11).collectEntries {[months[it], m.containsKey(it) ? m[it] : 0]}
+               }.as("totals").select("customer", "totals").by(id).by();
+     ==>[customer:8,totals:[Jan:851.0,Feb:0,Mar:491.2,Apr:960.00,May:0,Jun:0,Jul:0,Aug:1086.0,Sep:0,Oct:1208.0,Nov:0,Dec:0]]
+     ==>[customer:9,totals:[Jan:0,Feb:0,Mar:514.4,Apr:0,May:0,Jun:0,Jul:0,Aug:479.75,Sep:88.8,Oct:0,Nov:320.0,Dec:0]]
+     ==>[customer:10,totals:[Jan:660.0,Feb:0,Mar:0,Apr:881.25,May:2156.5,Jun:2082.0,Jul:0,Aug:0,Sep:1332.40,Oct:0,Nov:403.2,Dec:0]]
+     ==>[customer:11,totals:[Jan:0,Feb:735.0,Mar:5065.00,Apr:491.5,May:0,Jun:2142.9,Jul:0,Aug:0,Sep:0,Oct:1704.0,Nov:1101.0,Dec:2567.10]]
+     ==>[customer:12,totals:[Jan:3884.95,Feb:3397.70,Mar:2034.50,Apr:0,May:3192.65,Jun:1565.65,Jul:0,Aug:3605.6,Sep:4879.20,Oct:630.0,Nov:1459.00,Dec:2318.90]]
+     ==>[customer:13,totals:[Jan:625.0,Feb:0,Mar:677.0,Apr:1143.80,May:0,Jun:330.0,Jul:464.0,Aug:0,Sep:0,Oct:0,Nov:0,Dec:0]]
+     ==>[customer:14,totals:[Jan:730.0,Feb:4049.0,Mar:0,Apr:0,May:0,Jun:3212.80,Jul:1176.0,Aug:450.0,Sep:2080.0,Oct:0,Nov:7390.2,Dec:0]]
+     ...
+    
+
+  
