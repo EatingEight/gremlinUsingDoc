@@ -1,6 +1,6 @@
 对应原文：http://sql2gremlin.com/
 
-复杂sql:
+1）复杂sql:
   关键点：
      sql例子，展示每个顾客按照月份顺序获取每个月的平均和总收入。
   Sql:
@@ -62,5 +62,62 @@
      ==>[customer:14,totals:[Jan:730.0,Feb:4049.0,Mar:0,Apr:0,May:0,Jun:3212.80,Jul:1176.0,Aug:450.0,Sep:2080.0,Oct:0,Nov:7390.2,Dec:0]]
      ...
     
+2）推荐相关例子：
+  关键点：
+    该例是展示怎么向指定顾客推荐5款可能喜欢的产品。这5款产品被选中的流程如下：
+       第一步：找出该顾客A已经购买过的产品 productsA；
+       第二步：找出其他哪些顾客也购买过相同的产品 custems；
+       第三步：找出这些custems也购买过的所有产品 productsB;
+       第四步：找出productsB中没有被顾客A购买过，但是被custems购买过的产品 productsC;
+       第五步：按照被购买量，对productsC进行排序。取出top5.
+determine products which were not already ordered by the initial customer, but ordered by the others
+rank products by occurence in other orders
+  SQL：
+    SELECT TOP (5) [t14].[ProductName]
+    FROM (SELECT COUNT(*) AS [value],
+                 [t13].[ProductName]
+            FROM [customers] AS [t0]
+     CROSS APPLY (SELECT [t9].[ProductName]
+                    FROM [orders] AS [t1]
+              CROSS JOIN [order details] AS [t2]
+              INNER JOIN [products] AS [t3]
+                      ON [t3].[ProductID] = [t2].[ProductID]
+              CROSS JOIN [order details] AS [t4]
+              INNER JOIN [orders] AS [t5]
+                      ON [t5].[OrderID] = [t4].[OrderID]
+               LEFT JOIN [customers] AS [t6]
+                      ON [t6].[CustomerID] = [t5].[CustomerID]
+              CROSS JOIN ([orders] AS [t7]
+                          CROSS JOIN [order details] AS [t8]
+                          INNER JOIN [products] AS [t9]
+                                  ON [t9].[ProductID] = [t8].[ProductID])
+                   WHERE NOT EXISTS(SELECT NULL AS [EMPTY]
+                                      FROM [orders] AS [t10]
+                                CROSS JOIN [order details] AS [t11]
+                                INNER JOIN [products] AS [t12]
+                                        ON [t12].[ProductID] = [t11].[ProductID]
+                                     WHERE [t9].[ProductID] = [t12].[ProductID]
+                                       AND [t10].[CustomerID] = [t0].[CustomerID]
+                                       AND [t11].[OrderID] = [t10].[OrderID])
+                     AND [t6].[CustomerID] <> [t0].[CustomerID]
+                     AND [t1].[CustomerID] = [t0].[CustomerID]
+                     AND [t2].[OrderID] = [t1].[OrderID]
+                     AND [t4].[ProductID] = [t3].[ProductID]
+                     AND [t7].[CustomerID] = [t6].[CustomerID]
+                     AND [t8].[OrderID] = [t7].[OrderID]) AS [t13]
+           WHERE [t0].[CustomerID] = N'ALFKI'
+        GROUP BY [t13].[ProductName]) AS [t14]
+      ORDER BY [t14].[value] DESC
 
-  
+  对应的gremlin查询及结果示例：
+     gremlin> g.V().has("customer", "customerId", "ALFKI").as("customer").
+               out("ordered").out("contains").out("is").aggregate("products").
+               in("is").in("contains").in("ordered").where(neq("customer")).
+               out("ordered").out("contains").out("is").where(without("products")).
+               groupCount().order(local).by(values, decr).select(keys).limit(local, 5).
+               unfold().values("name")
+     ==>Gorgonzola Telino
+     ==>Guaraná Fantástica
+     ==>Camembert Pierrot
+     ==>Chang
+     ==>Jack's New England Clam Chowder
