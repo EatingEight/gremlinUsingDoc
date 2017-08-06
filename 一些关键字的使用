@@ -1,3 +1,5 @@
 1、incr 增序
 2、local 当前步骤中
 3、neq  排除
+4、not(within('josh','marko')) 不存在于
+5、decr 降序
