@@ -4,7 +4,7 @@
 4、not(within('josh','marko')) 不存在于
 5、decr 降序
 6、label()  ---TinkerPop3 requires every Element to have a single, immutable string label (i.e. a Vertex, Edge, and VertexProperty). 
-7、identity()
+7、identity()  ---表示输入是什么，输出就是什么，什么都不改变
 
 参考例子： （如下三种写法，结果等同）
 1）g.V().hasLabel('O0241').has('O0241P0002',within(['15106709091'])).as('a').bothE('L1061','L1040').as('a1','a2')
