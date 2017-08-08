@@ -1,0 +1,9 @@
+先看示例：
+   g.V().hasLabel('O0241').has('O0241P0002',within(['15106709091']))
+    .bothE('L1061','L1040')
+    .choose(label())
+    .option('L1061', has('L1061P0008',eq('1')).has('L1061P0007',eq('266')))
+    .option(none, identity())
+    .otherV().path();
+    
+    上例中的choose..option..option..就类似java中的 switch..case..default。。
