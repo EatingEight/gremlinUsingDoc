@@ -1,0 +1,15 @@
+参考示例：
+g.V().hasLabel('O0238').has('O0238P0004',within(['363471363476619619'])).as('a')
+.outE('L1037').has('L1037P0001',between('1407599424','1502207424')).as('a1').inV().as('a4')
+.inE('L1037').
+where(eq('a1')).by('L1037P0004').has('L1037P0004',not(within('')))
+.where(eq('a1')).by('L1037P0007').has('L1037P0007',not(within('')))
+.as('a2')
+.where('a2',between('a1','a1')).by('L1037P0001').by(map{it.get().value('L1037P0001')  - 100}).by(map{it.get().value('L1037P0001') + 100})
+.outV().where(neq('a')).as('a3')
+.match(__.as('a2').groupCount().by('L1037P0002').count().is(lte(1)),
+__.as('a3').select('a3').where(eq('a')).by('O0238P0002'),
+ __.as('a3').values('O0238P0003').is(not(within('')))).select('a','a1','a2','a3','a4')
+ 
+ 其中，.where('a2',between('a1','a1')).by('L1037P0001').by(map{it.get().value('L1037P0001')  - 100}).by(map{it.get().value('L1037P0001') + 100})中，
+ map取变量的值做处理。
